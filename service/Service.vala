@@ -1,20 +1,22 @@
-/* Copyright 2016 Laboratório de Administração de Redes (LAR)
-*
-* This file is part of PPPoEDI.
-*
-* Hello Again is free software: you can redistribute it
-* and/or modify it under the terms of the GNU General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* Hello Again is distributed in the hope that it will be
-* useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-* Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along
-* with Hello Again. If not, see http://www.gnu.org/licenses/.
-*/
+// -*- Mode: vala; indent-tabs-mode: nil; tab-width: 4 -*-
+/*-
+ * Copyright (c) 2016-2017 Laboratório de Administração de Redes - LAR (https://lar.inf.ufes.br)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authored by: Leonardo Lemos <leonardolemos@inf.ufes.br>
+ */
 using PPPoEDI.Exceptions;
 
 namespace PPPoEDI {
@@ -22,73 +24,111 @@ namespace PPPoEDI {
     [DBus (name = "br.inf.ufes.lar.pppoedi.Service")]
     public class Service : GLib.Object {
 
-        public void add_network_gateway (string network, string gateway) throws ConnectionException {
-            string command  = GLib.Environment.find_program_in_path ("route") + " "
-                              + "add -net" + " " + network + " "
-                              + "gw" + " " + gateway;
+        public void add_network_route (string network_address, string gateway_address, string device_name) throws ConnectionException {
+            string cmd = GLib.Environment.find_program_in_path ("ip") + " "
+                       + "route" + " "
+                       + "add" + " " + network_address
+                       + "via" + " " + gateway_address
+                       + "dev" + " " + device_name;
+            string cmd_stdout;
+            string cmd_sterr;
+            int cmd_status;
 
+            try {
+                GLib.Process.spawn_command_line_sync (cmd,
+                                                      out cmd_stdout,
+                                                      out cmd_sterr,
+                                                      out cmd_status);
 
+            } catch (SpawnError e) {
+                throw new ConnectionException.NETWORK_GATEWAY_ADDITION_FAIL ("Failed to execute `ip route add` command");
+            }
 
-            if (Posix.system (command) != 0)
+            if (cmd_status != 0) {
                 throw new ConnectionException.NETWORK_GATEWAY_ADDITION_FAIL ("Failed to add network gateway");
+            }
         }
 
-        public void add_default_gateway (string network_interface) throws ConnectionException {
-            string command  = GLib.Environment.find_program_in_path ("route") + " "
-                              + "add default" + " " + network_interface;
+        public void add_default_gateway (string device_name) throws ConnectionException {
+            string cmd  = GLib.Environment.find_program_in_path ("ip") + " "
+                        + "route" + " "
+                        + "add" + " " + "default" + " "
+                        + "dev" + device_name;
+            string cmd_stdout;
+            string cmd_sterr;
+            int cmd_status;
 
-            if (Posix.system (command) != 0)
+            try {
+                GLib.Process.spawn_command_line_sync (cmd,
+                                                      out cmd_stdout,
+                                                      out cmd_sterr,
+                                                      out cmd_status);
+            } catch (SpawnError e) {
+                throw new ConnectionException.DEFAULT_GATEWAY_ADDITION_FAIL ("Failed to execute `ip route add default` command");
+            }
+
+            if (cmd_status != 0) {
                 throw new ConnectionException.DEFAULT_GATEWAY_ADDITION_FAIL ("Failed to add default gateway");
+            }
         }
 
         public void pon (string provider) throws ConnectionException, FileException {
-            string provider_file_path = "/etc/ppp/peers/" + provider;
+            string provider_file_path = GLib.Path.build_filename ("/", "etc", "ppp", "peers", provider);
             var provider_file = File.new_for_path (provider_file_path);
 
-            string pppd = GLib.Environment.find_program_in_path ("pppd") + " " + "call" + " " + provider;
+            string pppd = GLib.Environment.find_program_in_path ("pppd") + " "
+                        + "call" + " " + provider;
             string pppd_stdout;
             string pppd_stderr;
             int pppd_status;
 
             // Test if the provider file really exists
             if (provider_file.query_exists ()) {
-                // Spawn the `pppd` Process
-                // It may take a while to get the exit code
-                GLib.Process.spawn_command_line_sync (pppd,
-                                                     out pppd_stdout,
-                                                     out pppd_stderr,
-                                                     out pppd_status);
+                try {
+                    // Spawn the `pppd` Process
+                    GLib.Process.spawn_command_line_sync (pppd,
+                                                         out pppd_stdout,
+                                                         out pppd_stderr,
+                                                         out pppd_status);
+                } catch (SpawnError e) {
+                    throw new ConnectionException.PON_FAIL ("Can't spawn `pppd` Process");
+                }
             }
             else {
                 throw new FileException.PROVIDER_FILE_NOT_FOUND ("Configuration file for provider %s not found", provider);
             }
-
-            // Test `pppd` exit code
-            // See `man pppd`
-            if (pppd_status == 0) {
-                debug ("pppd connected to the provider %s with success", provider);
-                return;
-            }
-            else if (pppd_status == 19) {
-                throw new ConnectionException.PPP_AUTH_FAIL ("Failed to authenticate in the provider %s", provider);
-            }
-            else {
-                throw new ConnectionException.PON_FAIL ("Failed to connect to provider %s, exited with code (%d)", provider, pppd_status);
-            }
         }
 
         public void poff (string provider) throws ConnectionException, FileException {
-            string command = GLib.Environment.find_program_in_path ("poff") + " " + provider;
+            string pid_file_path = GLib.Path.build_filename ("/", "var", "run", "ppp0.pid");
+            var pid_file = File.new_for_path (pid_file_path);
+            Posix.pid_t pppd_pid;
 
-            if (Posix.system (command) != 0)
-                throw new ConnectionException.POFF_FAIL ("Failed to disconnect from provider %s", provider);
+            if (!pid_file.query_exists ()) {
+                throw new ConnectionException.POFF_FAIL ("Can't find pppd pid file");
+            }
+
+            try {
+                var dis = new DataInputStream (pid_file.read ());
+                string line = dis.read_line (null);
+
+                pppd_pid = int.parse (line);
+            } catch (Error e) {
+                error ("%s", e.message);
+            }
+
+            // Kill the pid of `pppd call provider` using SIGTERM
+            int exit_status = Posix.kill (pppd_pid, 15);
+
+            if (exit_status != 0) {
+                throw new ConnectionException.POFF_FAIL ("Can't find pppd pid file");
+            }
         }
 
         public void create_provider (string provider_name, string network_interface, string username) throws FileException {
-            string peer_file_path   = "/etc/ppp/peers/" + provider_name;
+            string peer_file_path   = GLib.Path.build_filename ("/", "etc", "ppp", "peers", provider_name);
             string peer_config      = "noipdefault\n"
                                     + "defaultroute\n"
-                                    + "replacedefaultroute\n"
                                     + "hide-password\n"
                                     + "noauth\n"
                                     + "persist\n"
@@ -112,7 +152,7 @@ namespace PPPoEDI {
             // It contains the PPPoE Secrets file entry
             // Format: "username" * "userpassword"
             string user_secrets       = "\"" + username + "\"" + " * " + "\"" + password + "\"";
-            string secrets_file_path  = "/etc/ppp/pap-secrets";
+            string secrets_file_path  = GLib.Path.build_filename ("/", "etc", "ppp", "pap-secrets");
 
             try {
                 var secrets_file    = File.new_for_path (secrets_file_path);
