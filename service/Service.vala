@@ -27,8 +27,8 @@ namespace PPPoEDI {
         public void add_network_route (string network_address, string gateway_address, string device_name) throws ConnectionException {
             string cmd = GLib.Environment.find_program_in_path ("ip") + " "
                        + "route" + " "
-                       + "add" + " " + network_address
-                       + "via" + " " + gateway_address
+                       + "add" + " " + network_address + " "
+                       + "via" + " " + gateway_address + " "
                        + "dev" + " " + device_name;
             string cmd_stdout;
             string cmd_sterr;
