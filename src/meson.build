@@ -1,0 +1,18 @@
+executable(
+    'br.inf.ufes.lar.pppoedi',
+    'Exceptions/ConnectionException.vala',
+    'Exceptions/FileException.vala',
+    'Application.vala',
+    'Connection.vala',
+    'MainWindow.vala',
+    'Settings.vala',
+    'User.vala',
+    'Utils.vala',
+    dependencies :[
+        dependency('glib-2.0'),
+        dependency('gobject-2.0'),
+        dependency('gtk+-3.0'),
+        dependency('json-glib-1.0')
+    ],
+    install : true
+)

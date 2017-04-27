@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=PPPoEDI
+GenericName=PPPoEDI
+Comment=An app to use the DI Network
+Categories=Internet;
+Exec=pppoedi
+Icon=applications-internet
+Terminal=false
+Type=Application
+Keywords=ppp;pppoe;di;ufes;
