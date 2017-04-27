@@ -132,19 +132,23 @@ namespace PPPoEDI {
                                     + "hide-password\n"
                                     + "noauth\n"
                                     + "persist\n"
-                                    + "plugin rp-pppoe.so" + " "
-                                    + "so" + " " + network_interface + "\n"
+                                    + "plugin rp-pppoe.so" + " " + network_interface + "\n"
                                     + "user" + " " + username + "\n"
                                     + "usepeerdns";
 
             try {
                 var peer_file   = File.new_for_path (peer_file_path);
+
+                if (peer_file.query_exists ()) {
+                    peer_file.delete ();
+                }
+
                 var file_stream = peer_file.create (FileCreateFlags.REPLACE_DESTINATION);
 
                 var dos = new DataOutputStream (file_stream);
                 dos.put_string (peer_config);
             } catch (Error e) {
-                throw new FileException.WRITE_PROVIDER_FAIL ("Can't write provider file for provider %s", provider_name);
+                throw new FileException.WRITE_PROVIDER_FAIL ("Can't write provider file for provider %s: %s", provider_name, e.message);
             }
         }
 
@@ -156,12 +160,17 @@ namespace PPPoEDI {
 
             try {
                 var secrets_file    = File.new_for_path (secrets_file_path);
+
+                if (secrets_file.query_exists ()) {
+                    secrets_file.delete ();
+                }
+
                 var file_stream     = secrets_file.create (FileCreateFlags.REPLACE_DESTINATION);
 
                 var dos = new DataOutputStream (file_stream);
                 dos.put_string (user_secrets);
             } catch (Error e) {
-                throw new FileException.WRITE_SECRETS_FAIL ("Can't write secrets file for user %s", username);
+                throw new FileException.WRITE_SECRETS_FAIL ("Can't write secrets file for user %s: %s", username, e.message);
             }
         }
     }
