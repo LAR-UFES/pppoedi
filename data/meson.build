@@ -4,7 +4,7 @@ install_data(
 )
 
 install_data(
-    'br.inf.ufes.lar.pppoedi.service',
+    'br.inf.ufes.lar.pppoedi.Service.service',
     install_dir : 'usr/share/dbus-1/system-services'
 )
 
