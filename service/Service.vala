@@ -49,26 +49,48 @@ namespace PPPoEDI {
             }
         }
 
-        public void add_default_gateway (string device_name) throws ConnectionException {
-            string cmd  = GLib.Environment.find_program_in_path ("ip") + " "
-                        + "route" + " "
-                        + "add" + " " + "default" + " "
-                        + "dev" + device_name;
-            string cmd_stdout;
-            string cmd_sterr;
-            int cmd_status;
+        public void replace_default_route (string device_name) throws ConnectionException {
+            // `ip route` command tool
+            string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route" + " ";
 
+            // `ip route add default dev 'device_name'`
+            string add_route = route_tool + "add" + " " + "default" + " " + "dev" + "device_name";
+            string add_route_stdout;
+            string add_route_sterr;
+            int add_route_status;
+
+            // `ip route remove default`
+            string remove_route = route_tool + "remove" + " " + "default";
+            string remove_route_stdout;
+            string remove_route_sterr;
+            int remove_route_status;
+
+            // Try to remove current default route
             try {
-                GLib.Process.spawn_command_line_sync (cmd,
-                                                      out cmd_stdout,
-                                                      out cmd_sterr,
-                                                      out cmd_status);
+                GLib.Process.spawn_command_line_sync (remove_route,
+                                                      out remove_route_stdout,
+                                                      out remove_route_sterr,
+                                                      out remove_route_status);
             } catch (SpawnError e) {
-                throw new ConnectionException.DEFAULT_GATEWAY_ADDITION_FAIL ("Failed to execute `ip route add default` command");
+                warning ("%s", e.message);
+
+                if (remove_route_status != 0) {
+                    throw new ConnectionException.DEFAULT_ROUTE_REMOVE_FAIL ("Failed to remove current default route: %s", remove_route_sterr);
+                }
             }
 
-            if (cmd_status != 0) {
-                throw new ConnectionException.DEFAULT_GATEWAY_ADDITION_FAIL ("Failed to add default gateway");
+            // Try to add default route to 'device_name'
+            try {
+                GLib.Process.spawn_command_line_sync (add_route,
+                                                      out add_route_stdout,
+                                                      out add_route_sterr,
+                                                      out add_route_status);
+            } catch (SpawnError e) {
+                warning ("%s", e.message);
+
+                if (add_route_status != 0) {
+                    throw new ConnectionException.DEFAULT_ROUTE_ADDITION_FAIL ("Failed to add default route to device %s: %s", device_name, add_route_sterr);
+                }
             }
         }
 
@@ -102,10 +124,10 @@ namespace PPPoEDI {
         public void poff (string provider) throws ConnectionException, FileException {
             string pid_file_path = GLib.Path.build_filename ("/", "var", "run", "ppp0.pid");
             var pid_file = File.new_for_path (pid_file_path);
-            Posix.pid_t pppd_pid;
+            Posix.pid_t pppd_pid = 0;
 
             if (!pid_file.query_exists ()) {
-                throw new ConnectionException.POFF_FAIL ("Can't find pppd pid file");
+                throw new ConnectionException.POFF_FAIL ("Can't find pppd PID file");
             }
 
             try {
@@ -114,14 +136,22 @@ namespace PPPoEDI {
 
                 pppd_pid = int.parse (line);
             } catch (Error e) {
-                error ("%s", e.message);
+                warning ("%s", e.message);
+
+                throw new ConnectionException.POFF_FAIL ("Can't read pppd PID file");
             }
 
-            // Kill the pid of `pppd call provider` using SIGTERM
-            int exit_status = Posix.kill (pppd_pid, 15);
+            // Test if `pppd_pid` was initialized
+            if (pppd_pid != 0) {
+                // Kill the pid of `pppd call provider` using SIGTERM
+                int exit_status = Posix.kill (pppd_pid, 15);
 
-            if (exit_status != 0) {
-                throw new ConnectionException.POFF_FAIL ("Can't find pppd pid file");
+                if (exit_status != 0) {
+                    throw new ConnectionException.POFF_FAIL ("Fail to kill pppd process");
+                }
+            }
+            else {
+                throw new ConnectionException.POFF_FAIL ("Can't find pppd PID");
             }
         }
 
