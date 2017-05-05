@@ -6,3 +6,5 @@ project('br.inf.ufes.lar.pppoedi', ['vala', 'c'],
 subdir('service')
 subdir('src')
 subdir('data')
+
+meson.add_install_script('meson/post_install.py')
