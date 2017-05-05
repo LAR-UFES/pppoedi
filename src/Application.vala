@@ -15,7 +15,7 @@
 * You should have received a copy of the GNU General Public License along
 * with Hello Again. If not, see http://www.gnu.org/licenses/.
 */
-
+using PPPoEDI.Exceptions;
 namespace PPPoEDI {
 	public class PPPoEDIApp : Gtk.Application {
 		public PPPoEDIApp () {
@@ -34,4 +34,46 @@ namespace PPPoEDI {
 		var application = new PPPoEDIApp ();
 		return application.run (args);
 	}
+
+/*
+    [DBus (name = "br.inf.ufes.lar.pppoedi.Service")]
+    interface Service : Object {
+        public abstract void add_network_route (string network_address, string gateway_address, string device_name) throws ConnectionException, IOError;
+        public abstract void add_default_gateway (string device_name) throws ConnectionException, IOError;
+        public abstract void pon (string provider) throws ConnectionException, FileException, IOError;
+        public abstract void poff (string provider) throws ConnectionException, FileException, IOError;
+        public abstract void create_provider (string provider_name, string network_interface, string username) throws FileException, IOError;
+        public abstract void create_secrets (string username, string password) throws FileException, IOError;
+    }
+
+    public static int main (string[] args) {
+        PPPoEDI.Service service_bus = null;
+
+        try {
+            service_bus = Bus.get_proxy_sync    (BusType.SYSTEM,
+                                                "br.inf.ufes.lar.pppoedi.Service",
+                                                "/br/inf/ufes/lar/pppoedi/service");
+
+            // Add a new gateway for the network
+            service_bus.add_network_route ("10.9.0.0/24", "10.9.0.1", "enp63s0");
+            service_bus.add_network_route ("10.9.10.0/24", "10.9.0.1", "enp63s0");
+            service_bus.add_network_route ("200.137.66.0/24", "10.9.0.1", "enp63s0");
+
+            // Create provider file
+            service_bus.create_provider ("lar", "enp63s0", "leonardolemos");
+            // Create pap-secrets file
+            service_bus.create_secrets ("leonardolemos", "th3r0c3123");
+
+            // Finally connects to PPPoE server by pon method
+            service_bus.pon ("lar");
+
+            // Add a new default gateway for the network
+            service_bus.add_default_gateway ("ppp0");
+        }
+        catch (Error e) {
+            warning ("%s", e.message);
+            throw e;
+        }
+        return 0;
+    } */
 }
