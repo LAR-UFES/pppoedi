@@ -19,7 +19,7 @@
 namespace PPPoEDI {
 
     class Settings : Object {
-        public const string servers_extern_gateway = "200.137.66.0/24";
-        public const string[] gateways = {"10.9.10.0/24"};
+        public static string[] networks = {"10.9.10.0/24, 200.137.66.0/24"};
+        public static string provider_name = "lar";
     }
 }
