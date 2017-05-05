@@ -1,6 +1,14 @@
 <schemalist>
   <schema id="br.inf.ufes.lar.pppoedi" path="/br/inf/ufes/lar/pppoedi" gettext-domain="br.inf.ufes.lar.pppoedi">
 
+      <key name="username" type="s">
+        <default>""</default>
+        <summary>User's username</summary>
+        <description>
+          User's saved username
+        </description>
+      </key>
+
     <key name="save-password" type="b">
       <default>false</default>
       <summary>Is the password saved?</summary>
