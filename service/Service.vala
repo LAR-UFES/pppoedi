@@ -167,7 +167,7 @@ namespace PPPoEDI {
                                     + "usepeerdns";
 
             try {
-                var peer_file   = File.new_for_path (peer_file_path);
+                var peer_file = File.new_for_path (peer_file_path);
 
                 if (peer_file.query_exists ()) {
                     peer_file.delete ();
