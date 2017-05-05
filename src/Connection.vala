@@ -40,21 +40,36 @@ namespace PPPoEDI {
         }
 
         public void start() throws ConnectionException {
-            string route_output = Utils.command_output (Environment.find_program_in_path ("route") + " " + "-n");
+            string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route";
 
-            string subnet_gateway = null;
-            // Test if the third line of the `route -n` command exists
-            // It contains the default route.
-            // If it's set, then assign the default gateway to `subnet_gateway`.
-            if (route_output.split ("\n")[2] != null) {
-                subnet_gateway = route_output.split ("\n")[2].split (" ")[1];
-            }
-            else {
-                error ("No routes available in the system.");
+            string route_cmd = route_tool + " " + "show" + " " + "default 0.0.0.0/0";
+            string route_cmd_stdout;
+            string route_cmd_stderr;
+            int route_cmd_status;
+
+            try {
+                GLib.Process.spawn_command_line_sync (route_cmd,
+                                                      out route_cmd_stdout,
+                                                      out route_cmd_stderr,
+                                                      out route_cmd_status);
+            } catch (SpawnError e) {
+                warning ("%s", e.message);
             }
 
-            // Get the default gateway's interface name.
-            string network_interface = route_output.split ("\n")[2].split (" ")[7];
+            string[] route_tokens = route_cmd_stdout.split (" ");
+            string default_gateway;
+            string default_interface;
+
+            for (int i = 0; int < route_tokens.length (); i++) {
+                switch (route_tokens[i]) {
+                    case "via":
+                        default_gateway = route_tokens[i+1];
+                        break;
+                    case "dev":
+                        default_interface = route_tokens[i+1];
+                        break;
+                }
+            }
 
             PPPoEDI.Service service_bus = null;
 
