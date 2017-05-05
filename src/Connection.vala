@@ -23,15 +23,16 @@ namespace PPPoEDI {
 
     [DBus (name = "br.inf.ufes.lar.pppoedi.Service")]
     interface Service : Object {
-        public abstract void add_network_gateway (string network, string gateway) throws ConnectionException, IOError;
-        public abstract void add_default_gateway (string network_interface) throws ConnectionException, IOError;
+
+        public abstract void add_network_route (string network_address, string gateway_address, string device_name) throws ConnectionException, IOError;
+        public abstract void replace_default_route (string device_name) throws ConnectionException, IOError;
         public abstract void pon (string provider) throws ConnectionException, FileException, IOError;
         public abstract void poff (string provider) throws ConnectionException, FileException, IOError;
         public abstract void create_provider (string provider_name, string network_interface, string username) throws FileException, IOError;
         public abstract void create_secrets (string username, string password) throws FileException, IOError;
     }
 
-    public class Connection : Object {
+    public class Connection : GLib.Object {
 
         private PPPoEDI.User user;
         private string provider;
@@ -59,10 +60,10 @@ namespace PPPoEDI {
             }
 
             string[] route_tokens = route_cmd_stdout.split (" ");
-            string default_gateway;
-            string default_interface;
+            string default_gateway = null;
+            string default_interface = null;
 
-            for (int i = 0; int < route_tokens.length (); i++) {
+            for (int i = 0; i < route_tokens.length; i++) {
                 switch (route_tokens[i]) {
                     case "via":
                         default_gateway = route_tokens[i+1];
@@ -76,22 +77,26 @@ namespace PPPoEDI {
             PPPoEDI.Service service_bus = null;
 
             try {
-                service_bus = Bus.get_proxy_sync    (BusType.SESSION,
-                                                    "br.inf.ufes.lar.pppoedi.Service",
-                                                    "/br/inf/ufes/lar/pppoedi/service");
+                service_bus = GLib.Bus.get_proxy_sync (BusType.SESSION,
+                                                  "br.inf.ufes.lar.pppoedi.Service",
+                                                  "/br/inf/ufes/lar/pppoedi/service");
 
-                // Add a new gateway for the network
-                service_bus.add_network_gateway (subnet_gateway, network_interface);
-                // Add a new default gateway for the network
-                service_bus.add_default_gateway (network_interface);
+                // Add all networks from Settings
+                foreach (string network in PPPoEDI.Settings.networks) {
+                    service_bus.add_network_route (network, default_gateway, default_interface);
+                }
 
-                // Create provider file
-                service_bus.create_provider (this.provider, network_interface, this.user.username);
-                // Create pap-secrets file
+                // Replace the default network
+                service_bus.replace_default_route (default_interface);
+
+                // Create the provider configuration file
+                service_bus.create_provider (PPPoEDI.Settings.provider_name, default_interface, this.user.username);
+
+                // Create Secrets file
                 service_bus.create_secrets (this.user.username, this.user.password);
 
-                // Finally connects to PPPoE server by pon method
-                service_bus.pon (this.provider);
+                // Call the provider and start the PPPoE connection
+                service_bus.pon (PPPoEDI.Settings.provider_name);
             }
             catch (Error e) {
                 warning ("%s", e.message);
