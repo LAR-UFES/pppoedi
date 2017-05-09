@@ -22,5 +22,6 @@ namespace PPPoEDI.Exceptions {
         WRITE_PROVIDER_FAIL,
         WRITE_SECRETS_FAIL,
         PROVIDER_FILE_NOT_FOUND,
+        INTERFACE_DATA_FILE_NOT_FOUND,
 	}
 }
