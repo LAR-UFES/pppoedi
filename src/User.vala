@@ -23,7 +23,7 @@ namespace PPPoEDI {
         public string username { get; private set; }
         public string password { get; private set; }
 
-        User (string username, string password) {
+        public User (string username, string password) {
             this.username = username;
             this.password = password;
         }
