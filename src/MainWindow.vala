@@ -18,9 +18,16 @@
 
 namespace PPPoEDI {
 
-    public class MainWindow : Gtk.Window {
+    public class MainWindow : Gtk.ApplicationWindow {
 
-        public MainWindow () {
+        public Gtk.CheckButton  save_username_checkbutton;
+        public Gtk.CheckButton  lock_screen_disconnect_checkbutton;
+        public Gtk.Entry        username_entry;
+        public Gtk.Entry        password_entry;
+        public Gtk.Button       connection_button;
+
+
+        public MainWindow (Gtk.Application application) {
             this.title = "PPPoEDI";
             this.set_border_width (20);
             this.set_position (Gtk.WindowPosition.CENTER);
@@ -41,38 +48,35 @@ namespace PPPoEDI {
             // Username entry and entry's placeholder
             var username_label = new Gtk.Label ("Username:");
             username_label.set_xalign (0);
-            var username_entry = new Gtk.Entry ();
+            this.username_entry = new Gtk.Entry ();
 
             // Password entry and entry's placeholder
             var password_label = new Gtk.Label ("Password:");
             password_label.set_xalign (0);
-            var password_entry = new Gtk.Entry ();
-            password_entry.set_visibility (false);
+            this.password_entry = new Gtk.Entry ();
+            this.password_entry.set_visibility (false);
 
             // Password saving CheckButton
-            var save_password_checkbutton = new Gtk.CheckButton.with_label ("Save password");
+            this.save_username_checkbutton = new Gtk.CheckButton.with_label ("Save username");
 
             // Lock screen disconnection CheckButton
-            var lock_screen_disconnect_checkbutton = new Gtk.CheckButton.with_label ("Disconnect on screen locking");
+            this.lock_screen_disconnect_checkbutton = new Gtk.CheckButton.with_label ("Disconnect on screen locking");
 
             // Login button
-            var connection_button = new Gtk.Button.with_label ("Connect");
+            this.connection_button = new Gtk.Button.with_label ("Connect");
 
             layout.attach (username_label, 0, 0, 1, 1);
-            layout.attach_next_to (username_entry, username_label, Gtk.PositionType.BOTTOM, 1, 1);
+            layout.attach_next_to (this.username_entry, username_label, Gtk.PositionType.BOTTOM, 1, 1);
 
             layout.attach (password_label, 0, 2, 1, 1);
-            layout.attach_next_to (password_entry, password_label, Gtk.PositionType.BOTTOM, 1, 1);
+            layout.attach_next_to (this.password_entry, password_label, Gtk.PositionType.BOTTOM, 1, 1);
 
-            layout.attach (save_password_checkbutton, 0, 4, 1, 1);
-            layout.attach (lock_screen_disconnect_checkbutton, 0, 5, 1, 1);
+            layout.attach (this.save_username_checkbutton, 0, 4, 1, 1);
+            //layout.attach (this.lock_screen_disconnect_checkbutton, 0, 5, 1, 1);
 
-            layout.attach (connection_button, 0, 6, 1, 1);
+            layout.attach (this.connection_button, 0, 6, 1, 1);
 
             this.add (layout);
-
-            connection_button.clicked.connect (() => {
-            });
-		}
-	}
+        }
+    }
 }
