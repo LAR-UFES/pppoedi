@@ -1,6 +1,6 @@
 executable(
     'br.inf.ufes.lar.pppoedi.service',
-    '../src/Exceptions/ConnectionException.vala',
+    '../src/Exceptions/ServiceException.vala',
     '../src/Exceptions/FileException.vala',
     'Service.vala',
     dependencies :[
