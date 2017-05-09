@@ -19,14 +19,6 @@
 namespace PPPoEDI.Exceptions {
 
     public errordomain ConnectionException {
-        NETWORK_GATEWAY_ADDITION_FAIL,
-        DEFAULT_ROUTE_REMOVE_FAIL,
-        DEFAULT_ROUTE_ADDITION_FAIL,
-        PON_FAIL,
-        POFF_FAIL,
-        PPPOE_CONNECTION_FAIL,
-        PPPOE_DISCONNECTION_FAIL,
-        PPPOE_INTERFACE_CONFIGURATION_FAIL,
-        PPP_AUTH_FAIL
+        DEFAULT_ROUTE_NOT_FOUND
     }
 }
