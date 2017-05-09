@@ -28,14 +28,57 @@ namespace PPPoEDI {
         }
 
         protected override void activate () {
+            PPPoEDI.User user = null;
+            PPPoEDI.Connection connection = null;
+            var settings = new GLib.Settings ("br.inf.ufes.lar.pppoedi");
+            bool is_connected = false;
             var app_window = new PPPoEDI.MainWindow (this);
 
             app_window.show_all ();
+            this.add_window (app_window);
+
+            string? username = settings.get_string ("username");
+            if (username != null) { app_window.username_entry.set_text (username); }
+
+            bool save_username = settings.get_boolean ("is-username-saved");
+            if (save_username) { app_window.save_username_checkbutton.set_active (true); }
+
+            bool autodisconnect = settings.get_boolean ("auto-disconnect");
+            if (autodisconnect) { app_window.lock_screen_disconnect_checkbutton.set_active (true); }
+
+            // TODO: Make entries insensitive when connected.
+            app_window.connection_button.clicked.connect (() => {
+                if (is_connected) {
+                    try {
+                        connection.stop ();
+                    } catch (Error e) {
+                        stdout.printf ("%s", e.message);
+                    }
+                    is_connected = false;
+                    app_window.connection_button.label = "Connect";
+                } else {
+                    user = new PPPoEDI.User (app_window.username_entry.get_text (), app_window.password_entry.get_text ());
+                    connection = new PPPoEDI.Connection (user, PPPoEDI.Constants.PROVIDER_NAME);
+
+                    if (is_connected == false) {
+                        try {
+                            connection.start ();
+                        } catch (Error e) {
+                            stdout.printf ("%s", e.message);
+                        }
+
+                        is_connected = true;
+                        app_window.connection_button.label = "Disconnect";
+                    }
+                }
+            });
+
+
         }
     }
 
     public static int main (string[] args) {
-        /*var application = new PPPoEDIApp ();
-        return application.run (args);*/
+        var application = new PPPoEDIApp ();
+        return application.run (args);
     }
 }
