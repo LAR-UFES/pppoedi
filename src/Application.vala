@@ -34,8 +34,9 @@ namespace PPPoEDI {
             bool is_connected = false;
             var app_window = new PPPoEDI.MainWindow (this);
 
-            app_window.show_all ();
             this.add_window (app_window);
+            app_window.show_all ();
+
 
             string? username = settings.get_string ("username");
             if (username != null) { app_window.username_entry.set_text (username); }
