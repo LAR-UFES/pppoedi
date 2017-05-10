@@ -168,7 +168,7 @@ namespace PPPoEDI {
                                     + "defaultroute\n"
                                     + "hide-password\n"
                                     + "noauth\n"
-                                    + "persist\n"
+                                    + "nopersist\n"
                                     + "plugin rp-pppoe.so" + " " + network_interface + "\n"
                                     + "user" + " " + username + "\n"
                                     + "usepeerdns";
