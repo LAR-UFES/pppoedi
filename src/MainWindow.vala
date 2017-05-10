@@ -32,7 +32,7 @@ namespace PPPoEDI {
             this.set_border_width (20);
             this.set_position (Gtk.WindowPosition.CENTER);
             this.set_resizable (false);
-            this.set_default_size (600, 600);
+            this.set_default_size (800, 800);
             this.destroy.connect (Gtk.main_quit);
 
             try {
