@@ -8,7 +8,6 @@ Departamento de Informática (DI) - UFES and serve internet connection by using 
 You'll need the following dependencies to build:
 * meson (>= 0.40.1)
 * libgtk-3-dev
-* libjson-glib-dev
 * valac (>= 0.30)
 
 You'll need the following dependencies to run:
