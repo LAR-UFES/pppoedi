@@ -1,0 +1,14 @@
+Source: br.inf.ufes.lar.pppoedi
+Section: net
+Priority: extra
+Standards-Version: 3.9.3
+Maintainer: Leonardo Lemos <leonardolemos@inf.ufes.br>
+Build-Depends: debhelper (>= 9),
+               libgtk-3-dev,
+               meson,
+               valac
+
+Package: br.inf.ufes.lar.pppoedi
+Depends: ppp, iproute2
+Architecture: all
+Description: Connect through a PPPoE Server
