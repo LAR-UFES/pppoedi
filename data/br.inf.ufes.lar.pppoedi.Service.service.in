@@ -1,4 +1,4 @@
 [D-BUS Service]
 Name=br.inf.ufes.lar.pppoedi.Service
-Exec=/usr/local/bin/br.inf.ufes.lar.pppoedi.service
+Exec=@service_path@@service_bin@
 User=root
