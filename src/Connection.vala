@@ -24,10 +24,10 @@ namespace PPPoEDI {
     [DBus (name = "br.inf.ufes.lar.pppoedi.Service")]
     interface Service : Object {
 
-        public abstract void add_network_route (string network_address, string gateway_address, string device_name) throws ConnectionException, IOError;
-        public abstract void replace_default_route (string device_name) throws ConnectionException, IOError;
-        public abstract void pon (string provider) throws ConnectionException, FileException, IOError;
-        public abstract void poff (string provider) throws ConnectionException, FileException, IOError;
+        public abstract void add_network_route (string network_address, string gateway_address, string device_name) throws ServiceException, IOError;
+        public abstract void replace_default_route (string device_name, string gateway_address) throws ServiceException, IOError;
+        public abstract void pon (string provider) throws ServiceException, FileException, IOError;
+        public abstract void poff (string provider) throws ServiceException, FileException, IOError;
         public abstract void create_provider (string provider_name, string network_interface, string username) throws FileException, IOError;
         public abstract void create_secrets (string username, string password) throws FileException, IOError;
     }
@@ -37,7 +37,7 @@ namespace PPPoEDI {
         private PPPoEDI.User user;
         private string provider;
 
-        Connection (PPPoEDI.User user, string provider) {
+        public Connection (PPPoEDI.User user, string provider) {
             this.user = user;
             this.provider = provider;
         }
@@ -46,8 +46,8 @@ namespace PPPoEDI {
             string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route";
 
             string route_cmd = route_tool + " " + "show" + " " + "default 0.0.0.0/0";
-            string route_cmd_stdout;
-            string route_cmd_stderr;
+            string route_cmd_stdout = null;
+            string route_cmd_stderr = null;
             int route_cmd_status;
 
             try {
@@ -58,11 +58,18 @@ namespace PPPoEDI {
             } catch (SpawnError e) {
                 warning ("%s", e.message);
             }
+            stdout.printf ("%s\n", route_cmd_stdout);
+            if ( route_cmd_stdout == "" ) {
+                throw new ConnectionException.DEFAULT_ROUTE_NOT_FOUND ("Default route was not found");
+            }
 
             string[] route_tokens = route_cmd_stdout.split (" ");
             string default_gateway = null;
             string default_interface = null;
 
+            // Check if we can find the current system's gateway and
+            // the current system's default network interface.
+            // Possible Array Format: {"default", "via", `default_gateway`, "dev", `default_interface`}.
             for (int i = 0; i < route_tokens.length; i++) {
                 switch (route_tokens[i]) {
                     case "via":
@@ -74,45 +81,103 @@ namespace PPPoEDI {
                 }
             }
 
+            // Initialize the service bus as null.
             PPPoEDI.Service service_bus = null;
 
             try {
-                service_bus = GLib.Bus.get_proxy_sync (BusType.SESSION,
-                                                  "br.inf.ufes.lar.pppoedi.Service",
-                                                  "/br/inf/ufes/lar/pppoedi/service");
+                service_bus = GLib.Bus.get_proxy_sync (BusType.SYSTEM,
+                                                       "br.inf.ufes.lar.pppoedi.Service",
+                                                       "/br/inf/ufes/lar/pppoedi/service");
 
-                // Add all networks from Settings
-                foreach (string network in PPPoEDI.Settings.networks) {
+                // Add all networks from the Constants.
+                foreach (string network in PPPoEDI.Constants.NETWORKS) {
                     service_bus.add_network_route (network, default_gateway, default_interface);
                 }
 
-                // Replace the default network
-                service_bus.replace_default_route (default_interface);
+                // Create the Provider file.
+                service_bus.create_provider (this.provider, default_interface, this.user.username);
 
-                // Create the provider configuration file
-                service_bus.create_provider (PPPoEDI.Settings.provider_name, default_interface, this.user.username);
-
-                // Create Secrets file
+                // Create the Secrets file.
                 service_bus.create_secrets (this.user.username, this.user.password);
 
                 // Call the provider and start the PPPoE connection
-                service_bus.pon (PPPoEDI.Settings.provider_name);
-            }
-            catch (Error e) {
-                warning ("%s", e.message);
+                service_bus.pon (this.provider);
+
+                // Check if the 'ppp0' interface is up before replacing the
+                // default system route.
+                // We need to force the sync check to make sure the method won't
+                // try to add the default route with a non-existant interface.
+                string route_stdout = null;
+                bool ppp0_found = false;
+
+                while (!ppp0_found) {
+
+                    GLib.Process.spawn_command_line_sync (route_tool, out route_stdout, null, null);
+
+                    // Check if the interface 'ppp0' is up and available in the kernel route table
+                    if ( route_stdout.contains (PPPoEDI.Constants.PPP_INTERFACE) ) {
+                        ppp0_found = true;
+                    }
+                }
+
+                stdout.printf ("123\n");
+                // Replace the default network
+                service_bus.replace_default_route (PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
+                stdout.printf ("123\n");
+            } catch (Error e) {
                 throw e;
+            }
+
+            // Create ~/.var directory if it not exists
+            try {
+                var home_dir = File.new_for_path (Environment.get_home_dir ());
+                var default_route_data = home_dir.get_child (".var").get_child ("pppoedi").get_child ("current-interface.data");
+
+                if ( default_route_data.query_exists () ) {
+                    default_route_data.delete ();
+                }
+
+                if (!default_route_data.get_parent ().query_exists ()) {
+                    default_route_data.get_parent ().make_directory_with_parents ();
+                }
+                stdout.printf ("1\n");
+                var dos = new DataOutputStream (default_route_data.create (FileCreateFlags.REPLACE_DESTINATION));
+
+                dos.put_string (default_interface + ":" + default_gateway);
+                stdout.printf ("2\n");
+            } catch (Error e) {
+                warning ("%s\n", e.message);
             }
         }
 
         public void stop() throws ConnectionException {
+
+            // Initialize the service bus as null.
             PPPoEDI.Service service_bus = null;
 
             try {
-                service_bus = Bus.get_proxy_sync    (BusType.SESSION,
-                                                    "br.inf.ufes.lar.pppoedi.Service",
-                                                    "/br/inf/ufes/lar/pppoedi/service");
+                service_bus = Bus.get_proxy_sync (BusType.SYSTEM,
+                                                  "br.inf.ufes.lar.pppoedi.Service",
+                                                  "/br/inf/ufes/lar/pppoedi/service");
+
+                var home_dir = File.new_for_path (Environment.get_home_dir ());
+                var default_route_data = home_dir.get_child (".var").get_child ("pppoedi").get_child ("current-interface.data");
+
+                if ( !default_route_data.query_exists () ) {
+                    throw new FileException.INTERFACE_DATA_FILE_NOT_FOUND ("Interface data not found");
+                }
+
+                var dis = new DataInputStream (default_route_data.read ());
+                string line = dis.read_line (null);
+
+                string[] data_array = line.split (":");
+
+                string interface_name = data_array[0];
+                string gateway = data_array[1];
 
                 service_bus.poff (this.provider);
+
+                service_bus.replace_default_route (interface_name, gateway);
             } catch (Error e) {
                 warning ("%s", e.message);
                 throw e;
