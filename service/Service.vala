@@ -32,24 +32,23 @@ namespace PPPoEDI {
                        + "via" + " " + gateway_address + " "
                        + "dev" + " " + device_name;
             string cmd_stdout;
+            string cmd_stderr;
             int cmd_status;
 
             try {
                 GLib.Process.spawn_command_line_sync (cmd,
                                                       out cmd_stdout,
-                                                      null,
+                                                      out cmd_stderr,
                                                       out cmd_status);
             } catch (SpawnError e) {
-                throw new ServiceException.NETWORK_GATEWAY_ADDITION_FAIL ("Failed to execute `ip route add` command");
+                warning ("Failed to spawn command %s to add route from %s to %s: %s\n",
+                         cmd, network_address, gateway_address, e.message);
+
+                throw new ServiceException.ADD_NETWORK_ROUTE_FAIL ("Failed to execute `ip route add` command");
             }
 
-            if (cmd_status == 2) {
+            if ( cmd_stderr.contains ("RTNETLINK answers: File exists") ) {
                 warning ("Failed to add route to network %s: route already exists.\n", network_address);
-                return;
-            }
-
-            if (cmd_status != 2 && cmd_status != 0 && cmd_status != 512) {
-                throw new ServiceException.NETWORK_GATEWAY_ADDITION_FAIL ("Failed to add network gateway");
             }
         }
 
@@ -58,46 +57,67 @@ namespace PPPoEDI {
             // `ip route` command tool
             string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route" + " ";
 
-            string add_route = route_tool
-                             + "add" + " "
-                             + "default" + " "
-                             + "dev" + " " + device_name + " "
-                             + "via" + " " + gateway_address;
-            string add_route_stdout;
-            string add_route_sterr;
-            int add_route_status;
+            // Let's use the NetworkMonitor if we have any default route to change
+            // If we don't have any, let's use `device_name` and `gateway_address`
+            // to add a new default route.
+            NetworkMonitor monitor = NetworkMonitor.get_default ();
 
-            // `ip route remove default`
-            string remove_route = route_tool + "del" + " " + "default";
-            string remove_route_stdout;
-            int remove_route_status;
+            if ( !monitor.get_network_available () ) {
+                string add_default_rt_cmd = route_tool + " "
+                                          + "add" + " " + "default" + " "
+                                          + "via" + " " + gateway_address + " "
+                                          + "dev" + " " + device_name;
+                string add_default_rt_cmd_stdout;
+                string add_default_rt_cmd_stderr;
+                int add_default_rt_cmd_status;
 
-            // Try to remove current default route
-            try {
-                GLib.Process.spawn_command_line_sync (remove_route,
-                                                      out remove_route_stdout,
-                                                      null,
-                                                      out remove_route_status);
-            } catch (SpawnError e) {
-                warning ("%s", e.message);
+                // Try to add a new default route
+                try {
+                    GLib.Process.spawn_command_line_sync (add_default_rt_cmd,
+                                                          out add_default_rt_cmd_stdout,
+                                                          out add_default_rt_cmd_stderr,
+                                                          out add_default_rt_cmd_status);
+                } catch (SpawnError e) {
+                    warning ("Failed to spawn command %s to add a new default route from %s to %s: %s\n",
+                             add_default_rt_cmd, network_address, gateway_address, e.message);
 
-                if (remove_route_status != 0 && remove_route_status != 2 )  {
-                    throw new ServiceException.DEFAULT_ROUTE_REMOVE_FAIL ("Failed to remove current default route");
+                    throw new ServiceException.ADD_NEW_DEFAULT_ROUTE_FAIL ("Failed to spawn default route addition command process");
+                }
+
+                if ( add_default_rt_cmd_stderr.contains("RTNETLINK answers: No such process") ) {
+                    warning ("Command %s to add a new default route from %s to %s failed: %s\n",
+                             add_default_rt_cmd, network_address, gateway_address, add_default_rt_cmd_stderr);
+
+                    throw new ServiceException.CHANGE_DEFAULT_ROUTE_FAIL ("Failed to change default route: there is not default route to change");
                 }
             }
 
-            // Try to add default route to 'device_name'
-            try {
-                GLib.Process.spawn_command_line_sync (add_route,
-                                                      out add_route_stdout,
-                                                      out add_route_sterr,
-                                                      out add_route_status);
-            } catch (SpawnError e) {
-                warning ("%s", e.message);
+            string change_route_cmd = route_tool + " "
+                                    + "change" + " " + "default" + " "
+                                    + "via" + " " + gateway_address
+                                    + "dev" + " " + device_name;
+            string change_route_cmd_stdout;
+            string change_route_cmd_stderr;
+            int change_route_cmd_status;
 
-                if (add_route_status != 0) {
-                    throw new ServiceException.DEFAULT_ROUTE_ADDITION_FAIL ("Failed to add default route to device %s: %s", device_name, add_route_sterr);
-                }
+            // Try to change the current default route
+            try {
+                GLib.Process.spawn_command_line_sync (change_route_cmd,
+                                                      out change_route_cmd_stdout,
+                                                      out change_route_cmd_stderr,
+                                                      out change_route_cmd_status);
+            } catch (SpawnError e) {
+                warning ("Failed to spawn command %s to change default route from %s to %s: %s\n",
+                         change_route_cmd, network_address, gateway_address, e.message);
+
+                throw new ServiceException.CHANGE_DEFAULT_ROUTE_FAIL ("Failed to spawn default route changing command process");
+            }
+
+            if ( change_route_cmd_stderr.contains("RTNETLINK answers: No such process") ) {
+                warning ("Command %s to change default route from %s to %s failed: %s\n",
+                         change_route_cmd, network_address, gateway_address, change_route_cmd_stderr);
+
+                throw new ServiceException.CHANGE_DEFAULT_ROUTE_FAIL ("Failed to change default route: there is not default route to change");
             }
         }
 
