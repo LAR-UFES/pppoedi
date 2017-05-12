@@ -20,8 +20,9 @@ namespace PPPoEDI.Exceptions {
 
     public errordomain ServiceException {
         NETWORK_GATEWAY_ADDITION_FAIL,
-        DEFAULT_ROUTE_REMOVE_FAIL,
-        DEFAULT_ROUTE_ADDITION_FAIL,
+        ADD_NETWORK_ROUTE_FAIL,
+        CHANGE_DEFAULT_ROUTE_FAIL,
+        ADD_NEW_DEFAULT_ROUTE_FAIL,
         PON_FAIL,
         POFF_FAIL,
         PPPOE_CONNECTION_FAIL,
