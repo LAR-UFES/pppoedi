@@ -47,6 +47,9 @@ namespace PPPoEDI {
             bool autodisconnect = settings.get_boolean ("auto-disconnect");
             if (autodisconnect) { app_window.lock_screen_disconnect_checkbutton.set_active (true); }
 
+            // Register the quit action
+            var quit_action = new SimpleAction ("quit", null);
+
             // TODO: Make entries insensitive when connected.
             app_window.connection_button.clicked.connect (() => {
                 if (is_connected) {
@@ -71,6 +74,20 @@ namespace PPPoEDI {
                         is_connected = true;
                         app_window.connection_button.label = "Disconnect";
                     }
+                }
+            });
+
+            quit_action.activate.connect (() => {
+                if (app_window != null) {
+                    if (is_connected == true) {
+                        try {
+                            connection.stop ();
+                        } catch (Error e) {
+                            stdout.printf ("%s", e.message);
+                        }
+                    }
+
+                    app_window.destroy ();
                 }
             });
 
