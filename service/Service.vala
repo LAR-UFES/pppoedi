@@ -53,7 +53,6 @@ namespace PPPoEDI {
         }
 
         public void replace_default_route (string device_name, string gateway_address) throws ServiceException {
-
             // `ip route` command tool
             string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route" + " ";
 
@@ -75,7 +74,7 @@ namespace PPPoEDI {
                 warning ("Failed to spawn command %s to replace default route to %s via device %s: %s\n",
                          replace_route_cmd, gateway_address, device_name, e.message);
 
-                throw new ServiceException.replace_DEFAULT_ROUTE_FAIL ("Failed to spawn default route changing command process");
+                throw new ServiceException.REPLACE_DEFAULT_ROUTE_FAIL ("Failed to spawn default route changing command process");
             }
 
             debug ("Tried to replace default route to %s via device %s, OUTPUT: %s %s, EXIT STATUS: %d\n",
@@ -107,6 +106,7 @@ namespace PPPoEDI {
                                                          out pppd_stdout,
                                                          out pppd_stderr,
                                                          out pppd_status);
+
                 } catch (SpawnError e) {
                     throw new ServiceException.PON_FAIL ("Can't spawn `pppd` Process");
                 }
@@ -114,6 +114,8 @@ namespace PPPoEDI {
             else {
                 throw new FileException.PROVIDER_FILE_NOT_FOUND ("Configuration file for provider %s not found", provider);
             }
+
+            debug ("Tried to call provider %s\n", provider);
         }
 
         public void poff (string provider) throws ServiceException, FileException {
