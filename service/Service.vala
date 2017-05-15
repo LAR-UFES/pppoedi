@@ -78,15 +78,15 @@ namespace PPPoEDI {
                                                           out add_default_rt_cmd_stderr,
                                                           out add_default_rt_cmd_status);
                 } catch (SpawnError e) {
-                    warning ("Failed to spawn command %s to add a new default route from %s to %s: %s\n",
-                             add_default_rt_cmd, network_address, gateway_address, e.message);
+                    warning ("Failed to spawn command %s to add a new default route from to %s via device %s: %s\n",
+                             add_default_rt_cmd, gateway_address, device_name, e.message);
 
                     throw new ServiceException.ADD_NEW_DEFAULT_ROUTE_FAIL ("Failed to spawn default route addition command process");
                 }
 
                 if ( add_default_rt_cmd_stderr.contains("RTNETLINK answers: No such process") ) {
-                    warning ("Command %s to add a new default route from %s to %s failed: %s\n",
-                             add_default_rt_cmd, network_address, gateway_address, add_default_rt_cmd_stderr);
+                    warning ("Command %s to add a new default route from to %s via device %s failed: %s\n",
+                             add_default_rt_cmd, gateway_address, device_name, add_default_rt_cmd_stderr);
 
                     throw new ServiceException.CHANGE_DEFAULT_ROUTE_FAIL ("Failed to change default route: there is not default route to change");
                 }
@@ -107,15 +107,15 @@ namespace PPPoEDI {
                                                       out change_route_cmd_stderr,
                                                       out change_route_cmd_status);
             } catch (SpawnError e) {
-                warning ("Failed to spawn command %s to change default route from %s to %s: %s\n",
-                         change_route_cmd, network_address, gateway_address, e.message);
+                warning ("Failed to spawn command %s to change default route to %s via device %s: %s\n",
+                         change_route_cmd, gateway_address, device_name, e.message);
 
                 throw new ServiceException.CHANGE_DEFAULT_ROUTE_FAIL ("Failed to spawn default route changing command process");
             }
 
             if ( change_route_cmd_stderr.contains("RTNETLINK answers: No such process") ) {
-                warning ("Command %s to change default route from %s to %s failed: %s\n",
-                         change_route_cmd, network_address, gateway_address, change_route_cmd_stderr);
+                warning ("Command %s to change default route to %s via device %s failed: %s\n",
+                         change_route_cmd, gateway_address, device_name, change_route_cmd_stderr);
 
                 throw new ServiceException.CHANGE_DEFAULT_ROUTE_FAIL ("Failed to change default route: there is not default route to change");
             }
