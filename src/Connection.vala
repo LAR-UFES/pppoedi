@@ -103,27 +103,8 @@ namespace PPPoEDI {
                 // Call the provider and start the PPPoE connection
                 service_bus.pon (this.provider);
 
-                // Check if the 'ppp0' interface is up before replacing the
-                // default system route.
-                // We need to force the sync check to make sure the method won't
-                // try to add the default route with a non-existant interface.
-                string route_stdout = null;
-                bool ppp0_found = false;
-
-                while (!ppp0_found) {
-
-                    GLib.Process.spawn_command_line_sync (route_tool, out route_stdout, null, null);
-
-                    // Check if the interface 'ppp0' is up and available in the kernel route table
-                    if ( route_stdout.contains (PPPoEDI.Constants.PPP_INTERFACE) ) {
-                        ppp0_found = true;
-                    }
-                }
-
-                stdout.printf ("123\n");
                 // Replace the default network
                 service_bus.replace_default_route (PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
-                stdout.printf ("123\n");
             } catch (Error e) {
                 throw e;
             }
@@ -140,11 +121,10 @@ namespace PPPoEDI {
                 if (!default_route_data.get_parent ().query_exists ()) {
                     default_route_data.get_parent ().make_directory_with_parents ();
                 }
-                stdout.printf ("1\n");
+
                 var dos = new DataOutputStream (default_route_data.create (FileCreateFlags.REPLACE_DESTINATION));
 
                 dos.put_string (default_interface + ":" + default_gateway);
-                stdout.printf ("2\n");
             } catch (Error e) {
                 warning ("%s\n", e.message);
             }
