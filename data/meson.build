@@ -31,5 +31,5 @@ install_data(
 
 install_data(
     'br.inf.ufes.lar.pppoedi' + '.conf',
-    install_dir: join_paths(get_option('sysconfdir'), 'dbus-1', 'system.d')
+    install_dir: '/etc/dbus-1/system.d'
 )
