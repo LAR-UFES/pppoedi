@@ -8,6 +8,6 @@ executable(
         dependency('gobject-2.0'),
         dependency('gtk+-3.0'),
     ],
-    vala_args :['--pkg=posix'],
+    vala_args :['--pkg=posix', '-g'],
     install : true
 )
