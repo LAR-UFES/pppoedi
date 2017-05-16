@@ -66,6 +66,15 @@ namespace PPPoEDI {
                     connection = new PPPoEDI.Connection (user, PPPoEDI.Constants.PROVIDER_NAME);
 
                     if (is_connected == false) {
+
+                        // Check if the user checked the 'Save username' option
+                        // Then save the username in the Settings
+                        if (app_window.save_username_checkbutton.active) {
+                            settings.set_string ("username", app_window.username_entry.get_text ());
+                        } else {
+                            settings.set_string ("username", "");
+                        }
+
                         try {
                             connection.start ();
                             yield;
@@ -76,6 +85,14 @@ namespace PPPoEDI {
                         is_connected = true;
                         app_window.connection_button.label = "Disconnect";
                     }
+                }
+            });
+
+            app_window.save_username_checkbutton.toggled.connect (() => {
+                if (settings.get_boolean ("is-username-saved")) {
+                    settings.set_boolean ("is-username-saved", false);
+                } else {
+                    settings.set_boolean ("is-username-saved", true);
                 }
             });
 
