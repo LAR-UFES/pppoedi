@@ -1,0 +1,14 @@
+Source: pppoedi
+Section: net
+Priority: extra
+Maintainer: Leonardo Lemos <leonardolemos@inf.ufes.br>
+Build-Depends: debhelper (>= 9),
+               libgtk-3-dev,
+               meson (>=0.40),
+               valac (>=0.30)
+Standards-Version: 3.9.7
+
+Package: pppoedi
+Architecture: any
+Depends: ppp, iproute2
+Description: Authenticate your user and connect to the DI Internet through PPPoE protocol.
