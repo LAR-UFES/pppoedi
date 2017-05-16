@@ -38,11 +38,13 @@ namespace PPPoEDI {
         private string provider;
 
         public Connection (PPPoEDI.User user, string provider) {
+
             this.user = user;
             this.provider = provider;
         }
 
-        public void start() throws ConnectionException {
+        public async void start() throws ConnectionException {
+
             string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route";
 
             string route_cmd = route_tool + " " + "show" + " " + "default 0.0.0.0/0";
@@ -58,8 +60,8 @@ namespace PPPoEDI {
             } catch (SpawnError e) {
                 warning ("%s", e.message);
             }
-            stdout.printf ("%s\n", route_cmd_stdout);
-            if ( route_cmd_stdout == "" ) {
+
+            if ( route_cmd_stderr.contains ("RTNETLINK") ) {
                 throw new ConnectionException.DEFAULT_ROUTE_NOT_FOUND ("Default route was not found");
             }
 
@@ -83,6 +85,7 @@ namespace PPPoEDI {
 
             // Initialize the service bus as null.
             PPPoEDI.Service service_bus = null;
+            bool is_connected = false;
 
             try {
                 service_bus = GLib.Bus.get_proxy_sync (BusType.SYSTEM,
@@ -103,10 +106,32 @@ namespace PPPoEDI {
                 // Call the provider and start the PPPoE connection
                 service_bus.pon (this.provider);
 
-                // Replace the default network
-                service_bus.replace_default_route (PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
+                string pid_file_path = GLib.Path.build_filename ("/", "var", "run", "ppp0.pid");
+                var pid_file = File.new_for_path (pid_file_path);
+
+                GLib.Timeout.add_seconds (1, () => {
+                    if (pid_file.query_exists ()) {
+
+                        try {
+                            service_bus.replace_default_route (PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
+                        } catch (Error e) {
+                            warning ("%s\n", e.message);
+                        }
+
+                        is_connected = true;
+                        return false;
+                    }
+
+                    return true;
+                }, GLib.Priority.DEFAULT);
+                yield;
+
             } catch (Error e) {
                 throw e;
+            }
+
+            if (is_connected == false) {
+                throw new ConnectionException.CONNECTION_TIMEOUT ("Connection timeout (30s)");
             }
 
             // Create ~/.var directory if it not exists
@@ -130,7 +155,7 @@ namespace PPPoEDI {
             }
         }
 
-        public void stop() throws ConnectionException {
+        public async void stop() throws ConnectionException {
 
             // Initialize the service bus as null.
             PPPoEDI.Service service_bus = null;
@@ -155,9 +180,9 @@ namespace PPPoEDI {
                 string interface_name = data_array[0];
                 string gateway = data_array[1];
 
-                service_bus.poff (this.provider);
-
                 service_bus.replace_default_route (interface_name, gateway);
+
+                service_bus.poff (this.provider);
             } catch (Error e) {
                 warning ("%s", e.message);
                 throw e;
