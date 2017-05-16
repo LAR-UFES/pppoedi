@@ -19,6 +19,7 @@
 namespace PPPoEDI.Exceptions {
 
     public errordomain ConnectionException {
-        DEFAULT_ROUTE_NOT_FOUND
+        DEFAULT_ROUTE_NOT_FOUND,
+        CONNECTION_TIMEOUT
     }
 }
