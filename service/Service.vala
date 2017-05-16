@@ -56,35 +56,52 @@ namespace PPPoEDI {
             // `ip route` command tool
             string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route" + " ";
 
-            string replace_route_cmd = route_tool + " "
-                                    + "replace" + " " + "default" + " "
-                                    + "via" + " " + gateway_address
-                                    + "dev" + " " + device_name;
-            string replace_route_cmd_stdout;
-            string replace_route_cmd_stderr;
-            int replace_route_cmd_status;
+            // `ip route add default dev 'device_name'`
+            string add_route_cmd = route_tool + "add" + " " + "default" + " "
+                                 + "via" + " " + gateway_address + " "
+                                 + "dev" + " " + device_name;
+            string add_route_cmd_stdout;
+            string add_route_cmd_sterr;
+            int add_route_cmd_status;
 
-            // Try to replace the current default route
+            // `ip route remove default`
+            string remove_route_cmd = route_tool + "del" + " " + "default";
+            string remove_route_cmd_stdout;
+            string remove_route_cmd_sterr;
+            int remove_route_cmd_status;
+
+            // Try to remove current default route
             try {
-                GLib.Process.spawn_command_line_sync (replace_route_cmd,
-                                                      out replace_route_cmd_stdout,
-                                                      out replace_route_cmd_stderr,
-                                                      out replace_route_cmd_status);
+                GLib.Process.spawn_command_line_sync (remove_route_cmd,
+                                                      out remove_route_cmd_stdout,
+                                                      out remove_route_cmd_sterr,
+                                                      out remove_route_cmd_status);
             } catch (SpawnError e) {
-                warning ("Failed to spawn command %s to replace default route to %s via device %s: %s\n",
-                         replace_route_cmd, gateway_address, device_name, e.message);
-
-                throw new ServiceException.REPLACE_DEFAULT_ROUTE_FAIL ("Failed to spawn default route changing command process");
+                warning ("%s", e.message);
             }
 
-            debug ("Tried to replace default route to %s via device %s, OUTPUT: %s %s, EXIT STATUS: %d\n",
-                   gateway_address, device_name, replace_route_cmd_stdout,replace_route_cmd_stderr, replace_route_cmd_status);
+            debug ("Tried to remove current default route. COMMAND: %s, OUTPUT: %s %s, STATUS: %d\n",
+                   remove_route_cmd, remove_route_cmd_stdout, remove_route_cmd_sterr, remove_route_cmd_status);
 
-            if ( replace_route_cmd_stderr.contains("RTNETLINK answers: No such process") ) {
-                warning ("Command %s to replace default route to %s via device %s failed: %s\n",
-                         replace_route_cmd, gateway_address, device_name, replace_route_cmd_stderr);
+            if (remove_route_cmd_sterr.contains ("RTLINKNET")) {
+                throw new ServiceException.DEFAULT_ROUTE_REMOVE_FAIL ("Failed to remove current default route: %s", remove_route_cmd_sterr);
+            }
 
-                throw new ServiceException.REPLACE_DEFAULT_ROUTE_FAIL ("Failed to replace default route: there is not default route to replace");
+            // Try to add default route to 'device_name'
+            try {
+                GLib.Process.spawn_command_line_sync (add_route_cmd,
+                                                      out add_route_cmd_stdout,
+                                                      out add_route_cmd_sterr,
+                                                      out add_route_cmd_status);
+            } catch (SpawnError e) {
+                warning ("%s", e.message);
+            }
+
+            debug ("Tried to add a new default route. COMMAND: %s, OUTPUT: %s %s, STATUS: %d\n",
+                   add_route_cmd, add_route_cmd_stdout, add_route_cmd_sterr, add_route_cmd_status);
+
+            if (add_route_cmd_sterr.contains ("RTLINKNET")) {
+                throw new ServiceException.DEFAULT_ROUTE_ADDITION_FAIL ("Failed to add default route to device %s: %s", device_name, add_route_cmd_sterr);
             }
         }
 
