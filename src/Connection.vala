@@ -83,6 +83,10 @@ namespace PPPoEDI {
                 }
             }
 
+            if (default_interface == PPPoEDI.Constants.PPP_INTERFACE) {
+                throw new ConnectionException.PPP_IS_ALREADY_CONNECTED ("PPP is already connected through some daemon");
+            }
+
             // Initialize the service bus as null.
             PPPoEDI.Service service_bus = null;
             bool is_connected = false;
