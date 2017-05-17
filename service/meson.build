@@ -9,5 +9,6 @@ executable(
         dependency('gtk+-3.0'),
     ],
     vala_args :['--pkg=posix', '-g'],
-    install : true
+    install : true,
+    install_dir : join_paths('local', get_option('bindir'))
 )
