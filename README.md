@@ -11,7 +11,7 @@ You'll need the following dependencies to build:
 * valac (>= 0.30)
 
 You'll need the following dependencies to run:
-* pppd (>= 2.4.7)
+* ppp (>= 2.4.7)
 * rp-pppoe (>= 3.11)
 * iproute2 (>= 4.3.0)
 
@@ -19,7 +19,7 @@ Run `meson build` to configure the build environment and then change to the buil
 
     meson build
     cd build
-    mesonconf -Dprefix=/usr
+    mesonconf -Dprefix=/usr/local
     ninja
 
 To install, use `ninja install`, then execute with `br.inf.ufes.lar.pppoedi`
