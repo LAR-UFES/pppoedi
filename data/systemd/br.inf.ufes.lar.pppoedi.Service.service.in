@@ -1,0 +1,13 @@
+[Unit]
+Description=PPPoEDI Service
+
+[Service]
+Type=dbus
+BusName=@project_name@.Service
+ExecStart=@bindir@/@project_name@.service
+StandardError=null
+StandardOut=null
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

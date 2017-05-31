@@ -24,6 +24,17 @@ configure_file(
   install_dir: join_paths(get_option('datadir'), 'dbus-1', 'system-services'),
 )
 
+systemdServiceConf = configuration_data()
+systemdServiceConf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
+systemdServiceConf.set('project_name', project_name)
+configure_file(
+  input:  'systemd' + '/' + 'br.inf.ufes.lar.pppoedi.Service.service.in',
+  output: 'systemd' + '/' +  'br.inf.ufes.lar.pppoedi.Service.service',
+  configuration: systemdServiceConf,
+  install: true,
+  install_dir: join_paths('etc', 'systemd', 'system'),
+)
+
 install_data(
     project_name + '.gschema.xml',
     install_dir: join_paths(get_option('datadir'), 'glib-2.0', 'schemas')
