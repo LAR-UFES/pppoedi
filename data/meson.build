@@ -2,7 +2,7 @@ project_name = 'br.inf.ufes.lar.pppoedi'
 
 # Desktop launcher and description file.
 desktopconf = configuration_data()
-desktopconf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
+desktopconf.set('bindir', join_paths(get_option('prefix'), 'local', get_option('bindir')))
 desktopconf.set('project_name', project_name)
 configure_file(
   input: 'br.inf.ufes.lar.pppoedi.desktop.in',
@@ -14,7 +14,7 @@ configure_file(
 
 # D-Bus service file.
 dbusconf = configuration_data()
-dbusconf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
+dbusconf.set('bindir', join_paths(get_option('prefix'), 'local', get_option('bindir')))
 dbusconf.set('project_name', project_name)
 configure_file(
   input: 'br.inf.ufes.lar.pppoedi.Service.service.in',
