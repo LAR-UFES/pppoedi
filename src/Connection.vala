@@ -90,8 +90,6 @@ namespace PPPoEDI {
                     if (pid_file.query_exists ()) {
 
                         try {
-                            stdout.printf ("%s, %s\n", PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
-
                             service_bus.replace_default_route (PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
                         } catch (Error e) {
                             warning ("%s\n", e.message);
