@@ -37,7 +37,6 @@ namespace PPPoEDI {
             this.add_window (app_window);
             app_window.show_all ();
 
-
             string? username = settings.get_string ("username");
             if (username != null) { app_window.username_entry.set_text (username); }
 
@@ -63,6 +62,9 @@ namespace PPPoEDI {
                     app_window.connection_button.label = "Connect";
                 } else {
 
+                    app_window.connection_button.set_sensitive (false);
+                    app_window.connection_button.label = "Connecting...";
+
                     user = new PPPoEDI.User (app_window.username_entry.get_text (), app_window.password_entry.get_text ());
                     connection = new PPPoEDI.Connection (user, PPPoEDI.Constants.PROVIDER_NAME);
 
@@ -83,6 +85,7 @@ namespace PPPoEDI {
                             connection.connected.connect (() => {
                                 send_online_notification (this);
                                 is_connected = true;
+                                app_window.connection_button.set_sensitive (true);
                                 app_window.connection_button.label = "Disconnect";
                             });
 
