@@ -36,6 +36,9 @@ namespace PPPoEDI {
 
         private PPPoEDI.User user;
         private string provider;
+        private string default_interface;
+        private string default_gateway;
+        public signal void connected();
 
         public Connection (PPPoEDI.User user, string provider) {
 
@@ -45,6 +48,88 @@ namespace PPPoEDI {
 
         public async void start() throws ConnectionException {
 
+            network_settings_init ();
+
+            if (this.default_interface == PPPoEDI.Constants.PPP_INTERFACE) {
+                throw new ConnectionException.PPP_IS_ALREADY_CONNECTED ("PPP is already connected through some daemon");
+            }
+
+            // Initialize the service bus as null.
+            PPPoEDI.Service service_bus = null;
+            bool is_connected = false;
+
+            try {
+                service_bus = GLib.Bus.get_proxy_sync (BusType.SYSTEM,
+                                                       "br.inf.ufes.lar.pppoedi.Service",
+                                                       "/br/inf/ufes/lar/pppoedi/service");
+
+                // Add all networks from the Constants.
+                foreach (string network in PPPoEDI.Constants.NETWORKS) {
+                    service_bus.add_network_route (network, this.default_gateway, this.default_interface);
+                }
+
+                // Create the Provider file.
+                service_bus.create_provider (this.provider, this.default_interface, this.user.username);
+
+                // Create the Secrets file.
+                service_bus.create_secrets (this.user.username, this.user.password);
+
+                // Call the provider and start the PPPoE connection
+                service_bus.pon (this.provider);
+
+                string pid_file_path = GLib.Path.build_filename ("/", "var", "run", "ppp0.pid");
+                var pid_file = File.new_for_path (pid_file_path);
+
+                GLib.Timeout.add_seconds (1, () => {
+                    if (pid_file.query_exists ()) {
+
+                        try {
+                            stdout.printf ("%s, %s\n", PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
+
+                            service_bus.replace_default_route (PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
+                        } catch (Error e) {
+                            warning ("%s\n", e.message);
+                        }
+
+                        connected();
+                        is_connected = true;
+                        return false;
+                    }
+
+                    return true;
+                }, GLib.Priority.DEFAULT);
+                yield;
+
+            } catch (Error e) {
+                throw e;
+            }
+
+            if (is_connected == false) {
+                throw new ConnectionException.CONNECTION_TIMEOUT ("Connection timeout (30s)");
+            }
+        }
+
+        public async void stop() throws ConnectionException {
+
+            // Initialize the service bus as null.
+            PPPoEDI.Service service_bus = null;
+
+            try {
+                service_bus = Bus.get_proxy_sync (BusType.SYSTEM,
+                                                  "br.inf.ufes.lar.pppoedi.Service",
+                                                  "/br/inf/ufes/lar/pppoedi/service");
+
+                //stdout.printf ("%s, %s\n", interface_name, gateway);
+                service_bus.replace_default_route (this.default_interface, this.default_gateway);
+
+                service_bus.poff (this.provider);
+            } catch (Error e) {
+                warning ("%s", e.message);
+                throw e;
+            }
+        }
+
+        private void network_settings_init () {
             string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route";
 
             string route_cmd = route_tool + " " + "show" + " " + "default 0.0.0.0/0";
@@ -75,121 +160,12 @@ namespace PPPoEDI {
             for (int i = 0; i < route_tokens.length; i++) {
                 switch (route_tokens[i]) {
                     case "via":
-                        default_gateway = route_tokens[i+1];
+                        this.default_gateway = route_tokens[i+1];
                         break;
                     case "dev":
-                        default_interface = route_tokens[i+1];
+                        this.default_interface = route_tokens[i+1];
                         break;
                 }
-            }
-
-            if (default_interface == PPPoEDI.Constants.PPP_INTERFACE) {
-                throw new ConnectionException.PPP_IS_ALREADY_CONNECTED ("PPP is already connected through some daemon");
-            }
-
-            // Initialize the service bus as null.
-            PPPoEDI.Service service_bus = null;
-            bool is_connected = false;
-
-            try {
-                service_bus = GLib.Bus.get_proxy_sync (BusType.SYSTEM,
-                                                       "br.inf.ufes.lar.pppoedi.Service",
-                                                       "/br/inf/ufes/lar/pppoedi/service");
-
-                // Add all networks from the Constants.
-                foreach (string network in PPPoEDI.Constants.NETWORKS) {
-                    service_bus.add_network_route (network, default_gateway, default_interface);
-                }
-
-                // Create the Provider file.
-                service_bus.create_provider (this.provider, default_interface, this.user.username);
-
-                // Create the Secrets file.
-                service_bus.create_secrets (this.user.username, this.user.password);
-
-                // Call the provider and start the PPPoE connection
-                service_bus.pon (this.provider);
-
-                string pid_file_path = GLib.Path.build_filename ("/", "var", "run", "ppp0.pid");
-                var pid_file = File.new_for_path (pid_file_path);
-
-                GLib.Timeout.add_seconds (1, () => {
-                    if (pid_file.query_exists ()) {
-
-                        try {
-                            service_bus.replace_default_route (PPPoEDI.Constants.PPP_INTERFACE, PPPoEDI.Constants.PPP_GATEWAY);
-                        } catch (Error e) {
-                            warning ("%s\n", e.message);
-                        }
-
-                        is_connected = true;
-                        return false;
-                    }
-
-                    return true;
-                }, GLib.Priority.DEFAULT);
-                yield;
-
-            } catch (Error e) {
-                throw e;
-            }
-
-            if (is_connected == false) {
-                throw new ConnectionException.CONNECTION_TIMEOUT ("Connection timeout (30s)");
-            }
-
-            // Create ~/.var directory if it not exists
-            try {
-                var home_dir = File.new_for_path (Environment.get_home_dir ());
-                var default_route_data = home_dir.get_child (".var").get_child ("pppoedi").get_child ("current-interface.data");
-
-                if ( default_route_data.query_exists () ) {
-                    default_route_data.delete ();
-                }
-
-                if (!default_route_data.get_parent ().query_exists ()) {
-                    default_route_data.get_parent ().make_directory_with_parents ();
-                }
-
-                var dos = new DataOutputStream (default_route_data.create (FileCreateFlags.REPLACE_DESTINATION));
-
-                dos.put_string (default_interface + ":" + default_gateway);
-            } catch (Error e) {
-                warning ("%s\n", e.message);
-            }
-        }
-
-        public async void stop() throws ConnectionException {
-
-            // Initialize the service bus as null.
-            PPPoEDI.Service service_bus = null;
-
-            try {
-                service_bus = Bus.get_proxy_sync (BusType.SYSTEM,
-                                                  "br.inf.ufes.lar.pppoedi.Service",
-                                                  "/br/inf/ufes/lar/pppoedi/service");
-
-                var home_dir = File.new_for_path (Environment.get_home_dir ());
-                var default_route_data = home_dir.get_child (".var").get_child ("pppoedi").get_child ("current-interface.data");
-
-                if ( !default_route_data.query_exists () ) {
-                    throw new FileException.INTERFACE_DATA_FILE_NOT_FOUND ("Interface data not found");
-                }
-
-                var dis = new DataInputStream (default_route_data.read ());
-                string line = dis.read_line (null);
-
-                string[] data_array = line.split (":");
-
-                string interface_name = data_array[0];
-                string gateway = data_array[1];
-
-                service_bus.replace_default_route (interface_name, gateway);
-
-                service_bus.poff (this.provider);
-            } catch (Error e) {
-                warning ("%s", e.message);
-                throw e;
             }
         }
     }
