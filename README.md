@@ -9,6 +9,7 @@ You'll need the following dependencies to build:
 - meson (>= 0.40.1)
 - libgtk-3-dev
 - valac (>= 0.30)
+- dh-systemd
 
 You'll need the following dependencies to run:
 
