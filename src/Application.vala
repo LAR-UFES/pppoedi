@@ -24,7 +24,7 @@ namespace PPPoEDI {
     public class PPPoEDIApp : Gtk.Application {
         public PPPoEDIApp () {
             Object (application_id: "br.inf.ufes.lar.pppoedi",
-                flags: ApplicationFlags.FLAGS_NONE);
+                    flags: ApplicationFlags.FLAGS_NONE);
         }
 
         protected override void activate () {
@@ -47,13 +47,14 @@ namespace PPPoEDI {
             bool autodisconnect = settings.get_boolean ("auto-disconnect");
             if (autodisconnect) { app_window.lock_screen_disconnect_checkbutton.set_active (true); }
 
-            // TODO: Make entries insensitive when connected.
             app_window.connection_button.clicked.connect (() => {
+
                 if (is_connected) {
 
                     try {
                         connection.stop ();
                         yield;
+                        send_offline_notification (this);
                     } catch (Error e) {
                         stdout.printf ("%s", e.message);
                     }
@@ -78,12 +79,19 @@ namespace PPPoEDI {
                         try {
                             connection.start ();
                             yield;
+
+                            connection.connected.connect (() => {
+                                send_online_notification (this);
+                                is_connected = true;
+                                app_window.connection_button.label = "Disconnect";
+                            });
+
+
                         } catch (Error e) {
                             stdout.printf ("%s", e.message);
                         }
 
-                        is_connected = true;
-                        app_window.connection_button.label = "Disconnect";
+
                     }
                 }
             });
@@ -108,9 +116,27 @@ namespace PPPoEDI {
                     }
                 }
             });
-
-
         }
+    }
+
+    private void send_online_notification (Gtk.Application app) {
+        var notification = new Notification ("You are online");
+        notification.set_body ("You are connected through PPPoEDI");
+
+        var image = new Gtk.Image.from_icon_name ("network-transmit-receive", Gtk.IconSize.DIALOG);
+        notification.set_icon (image.gicon);
+
+        app.send_notification ("br.inf.ufes.lar.pppoedi", notification);
+    }
+
+    private void send_offline_notification (Gtk.Application app) {
+        var notification = new Notification ("You are offline");
+        notification.set_body ("You are disconnected from PPPoEDI");
+
+        var image = new Gtk.Image.from_icon_name ("network-offline", Gtk.IconSize.DIALOG);
+        notification.set_icon (image.gicon);
+
+        app.send_notification ("br.inf.ufes.lar.pppoedi", notification);
     }
 
     public static int main (string[] args) {
