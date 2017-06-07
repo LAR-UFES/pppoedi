@@ -9,10 +9,3 @@ schemadir = os.path.join(os.environ['MESON_INSTALL_PREFIX'], 'share',
 if not os.environ.get('DESTDIR'):
     print('Compiling gsettings schemas...')
 subprocess.call(['glib-compile-schemas', schemadir])
-
-servicedir = os.path.join(os.environ['MESON_INSTALL_PREFIX'], 'etc', 'systemd',
-                          'system')
-
-if not os.environ.get('DESTDIR'):
-    print('Enabling PPPoEDI Service...')
-subprocess.call(['systemctl', 'enable', 'br.inf.ufes.lar.pppoedi.Service'])
