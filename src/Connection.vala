@@ -48,7 +48,13 @@ namespace PPPoEDI {
 
         public async void start() throws ConnectionException {
 
-            network_settings_init ();
+            try {
+                network_settings_init ();
+            } catch (ConnectionException e) {
+                error ("%s", e.message);
+            }
+
+
 
             if (this.default_interface == PPPoEDI.Constants.PPP_INTERFACE) {
                 throw new ConnectionException.PPP_IS_ALREADY_CONNECTED ("PPP is already connected through some daemon");
@@ -129,7 +135,7 @@ namespace PPPoEDI {
             }
         }
 
-        private void network_settings_init () {
+        private void network_settings_init () throws ConnectionException {
             string route_tool = GLib.Environment.find_program_in_path ("ip") + " " + "route";
 
             string route_cmd = route_tool + " " + "show" + " " + "default 0.0.0.0/0";
