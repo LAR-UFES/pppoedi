@@ -155,8 +155,6 @@ namespace PPPoEDI {
             }
 
             string[] route_tokens = route_cmd_stdout.split (" ");
-            string default_gateway = null;
-            string default_interface = null;
 
             // Check if we can find the current system's gateway and
             // the current system's default network interface.
