@@ -13,4 +13,4 @@ Package: pppoedi
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, ppp, iproute2
 Description: Access internet through PPPoE protocol.
-    Authenticate your user and connect to the DI Internet through PPPoE protocol.
+Authenticate your user and connect to the DI Internet through PPPoE protocol.
