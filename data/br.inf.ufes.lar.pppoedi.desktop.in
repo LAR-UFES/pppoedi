@@ -1,8 +1,7 @@
 [Desktop Entry]
 Name=PPPoEDI
-GenericName=PPPoEDI
 Comment=An app to use the DI Network
-Categories=Internet;
+Categories=Network;Dialup;
 Exec=@bindir@/@project_name@
 Icon=applications-internet
 Terminal=false
