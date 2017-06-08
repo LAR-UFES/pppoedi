@@ -154,7 +154,7 @@ namespace PPPoEDI {
                 throw new ConnectionException.DEFAULT_ROUTE_NOT_FOUND ("Default route was not found");
             }
 
-            string[] route_tokens = route_cmd_stdout.split (" ");
+            string[] route_tokens = route_cmd_stdout.split ("\n")[0].split (" ");
 
             // Check if we can find the current system's gateway and
             // the current system's default network interface.
