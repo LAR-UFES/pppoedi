@@ -26,26 +26,14 @@ namespace PPPoEDI {
 
         public void add_network_route (string network_address, string gateway_address, string device_name) throws ServiceException {
 
-            string cmd = GLib.Environment.find_program_in_path ("ip") + " "
-                       + "route" + " "
-                       + "add" + " " + network_address + " "
-                       + "via" + " " + gateway_address + " "
-                       + "dev" + " " + device_name;
             string cmd_stdout;
             string cmd_stderr;
             int cmd_status;
 
-            try {
-                GLib.Process.spawn_command_line_sync (cmd,
-                                                      out cmd_stdout,
-                                                      out cmd_stderr,
-                                                      out cmd_status);
-            } catch (SpawnError e) {
-                warning ("Failed to spawn command %s to add route from %s to %s: %s\n",
-                         cmd, network_address, gateway_address, e.message);
-
-                throw new ServiceException.ADD_NETWORK_ROUTE_FAIL ("Failed to execute `ip route add` command");
-            }
+            PPPoEDI.Utils.run_route_tool (out cmd_stdout, out cmd_stderr, out cmd_status,
+                                          {"add", network_address,
+                                           "via", gateway_address,
+                                           "dev", device_name});
 
             if ( cmd_stderr.contains ("RTNETLINK answers: File exists") ) {
                 warning ("Failed to add route to network %s: route already exists.\n", network_address);
