@@ -2,6 +2,7 @@ executable(
     'br.inf.ufes.lar.pppoedi.service',
     '../src/Exceptions/ServiceException.vala',
     '../src/Exceptions/FileException.vala',
+    '../src/Utils.vala',
     'Service.vala',
     dependencies :[
         dependency('glib-2.0'),
