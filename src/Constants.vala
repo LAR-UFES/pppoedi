@@ -23,5 +23,5 @@ namespace PPPoEDI.Constants {
      public const string PROVIDER_NAME = "lar";
      public const string PPP_INTERFACE = "ppp0";
      public const string PPP_GATEWAY = "192.168.100.1";
-     public const string[] NETWORKS = {"10.9.10.0/24", "200.137.66.0/24"};
+     public const string[] NETWORKS = {"10.9.10.0/24", "200.137.66.0/24", "10.10.10.0/24"};
 }
