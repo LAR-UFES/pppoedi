@@ -20,9 +20,8 @@ You'll need the following dependencies to run:
 Run `meson build` to configure the build environment and then change to the build directory and run `ninja` to build
 
 ```
-meson build
+meson build --prefix=/usr
 cd build
-mesonconf -Dprefix=/usr
 ninja
 ```
 
